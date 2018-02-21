@@ -1,0 +1,432 @@
+{
+ "cells": [
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "##### Part 1\n",
+    "Load the MNIST data, and split it into a training set, a validation set, and a test set (e.g., use 40,000 instances for training, 10,000 for validation, and 10,000 for testing, use random_state = 2017). Then train a Random Forest classifier, an Extra-Trees classifier, and an SVM. Next, try to combine them into an ensemble that outperforms them all on the validation set, using a soft and hard voting classifier. Once you have found one, try it on the test set. How much better does it perform compared to the individual classifiers?"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 59,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "from sklearn.datasets import fetch_mldata\n",
+    "mnist = fetch_mldata('MNIST original')"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 60,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "X,y = mnist['data'] , mnist['target']"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 61,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "from sklearn.model_selection import train_test_split"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 62,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=2017)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 63,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "X_val, X_test, y_val, y_test = train_test_split(X_test, y_test, test_size=0.5, random_state=2017)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 64,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "(49000, 784)\n",
+      "(10500, 784)\n",
+      "(10500, 784)\n"
+     ]
+    }
+   ],
+   "source": [
+    "print(X_train.shape)\n",
+    "print(X_val.shape)\n",
+    "print(X_test.shape)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 65,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "from sklearn.ensemble import RandomForestClassifier\n",
+    "from sklearn.ensemble import ExtraTreesClassifier\n",
+    "from sklearn.svm import LinearSVC\n",
+    "from sklearn.ensemble import VotingClassifier\n",
+    "from sklearn.ensemble import VotingClassifier\n",
+    "import time\n",
+    "import matplotlib.pyplot as plt\n",
+    "from sklearn.decomposition import PCA"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 66,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "Linear SVM\n",
+      "Validation score: 0.876\n"
+     ]
+    }
+   ],
+   "source": [
+    "clf_svm = LinearSVC(loss = 'hinge', random_state= 2017)\n",
+    "clf_svm.fit(X_train , y_train)\n",
+    "print(\"Linear SVM\")\n",
+    "print(\"Validation score: {:.3f}\".format(clf_svm.score(X_val, y_val)))"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 67,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "Extra Trees Classifier\n",
+      "Validation score: 0.948\n"
+     ]
+    }
+   ],
+   "source": [
+    "clf_et = ExtraTreesClassifier(random_state= 2017)\n",
+    "clf_et.fit(X_train , y_train)\n",
+    "print(\"Extra Trees Classifier\")\n",
+    "print(\"Validation score: {:.3f}\".format(clf_et.score(X_val, y_val)))"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 68,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "Random Forest Classifier\n",
+      "Validation score: 0.946\n"
+     ]
+    }
+   ],
+   "source": [
+    "clf_rf = RandomForestClassifier(random_state=2017)\n",
+    "clf_rf.fit(X_train, y_train)\n",
+    "print(\"Random Forest Classifier\")\n",
+    "print(\"Validation score: {:.3f}\".format(clf_rf.score(X_val, y_val)))"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 69,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "Hard Voting\n",
+      "Validation score: 0.947\n"
+     ]
+    }
+   ],
+   "source": [
+    "voting_clf = VotingClassifier(estimators=[('rf', clf_rf), ('et', clf_et), ('svc',clf_svm)], voting='hard')\n",
+    "voting_clf.fit(X_train, y_train)\n",
+    "print(\"Hard Voting\")\n",
+    "print(\"Validation score: {:.3f}\".format(voting_clf.score(X_val, y_val)))"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 70,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "Soft Voting\n",
+      "Validation score: 0.960\n"
+     ]
+    }
+   ],
+   "source": [
+    "voting_clf = VotingClassifier(estimators=[('rf', clf_rf), ('et', clf_et)], voting='soft')\n",
+    "voting_clf.fit(X_train, y_train)\n",
+    "print(\"Soft Voting\")\n",
+    "print(\"Validation score: {:.3f}\".format(voting_clf.score(X_val, y_val)))"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "In the soft voting classifier I have not used SVM since the SVM(kernel = 'linear') takes forever to run and LinearSVC does not output probability. However I have given SVM(kernel = 'linear') method in the below comment."
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "from sklearn.svm import SVC\n",
+    "svm_rbf = SVC(random_state = 100, C = 100 , kernel = 'linear', probability = True)\n",
+    "svm_rbf.fit(X_train , y_train)\n",
+    "print(svm_rbf.score(X_val , y_val)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "Since SOFT VOTING gives us the best score, we will use the soft voting on test dataset."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 71,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "Test Score: 0.961\n"
+     ]
+    }
+   ],
+   "source": [
+    "print(\"Test Score: {:.3f}\".format(voting_clf.score(X_test,y_test)))"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "Soft voting performs better by almost 2%,2% and 9% on Extra Trees Classifier,Random Forest Classifier and SVM respectively. "
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "##### Part 2\n",
+    "On MNIST dataset with above split, train a Random Forest classifier on the dataset and time how long it takes, then evaluate the resulting model on the test set. Next, use PCA to reduce the dataset’s dimensionality, with an explained variance ratio of 95%. Train a new Random Forest classifier on the reduced dataset and see how long it takes. Was training much faster? Next evaluate the classifier on the test set: how does it compare to the previous classifier?"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 72,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "Time taken: 3.96 Seconds\n"
+     ]
+    }
+   ],
+   "source": [
+    "X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=2017)\n",
+    "clf_rf = RandomForestClassifier(random_state=2017)\n",
+    "start = time.time()\n",
+    "clf_rf.fit(X_train, y_train)\n",
+    "end = time.time()\n",
+    "print(\"Time taken: {:.2f}\".format(end - start) +\" Seconds\")"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 73,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "Random Forest Test Score: 0.945\n"
+     ]
+    }
+   ],
+   "source": [
+    "print(\"Random Forest Test Score: {:.3f}\".format(clf_rf.score(X_test,y_test)))"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 74,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "X_pca = X"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 75,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "[ 0.09746116  0.16901561  0.23051091  0.28454476  0.3334341   0.37648637\n",
+      "  0.40926898  0.4381654   0.46574904  0.48917044  0.51023733  0.53061286\n",
+      "  0.5476835   0.5646237   0.58045752  0.59532097  0.60851456  0.6213047\n",
+      "  0.63317742  0.64470679  0.65536719  0.66546513  0.67505665  0.684153\n",
+      "  0.69298586  0.70137405  0.70947236  0.71732954  0.72473217  0.73163231\n",
+      "  0.73819375  0.74464845  0.75065664  0.75651276  0.7621803   0.767615\n",
+      "  0.77266217  0.77753297  0.78232252  0.78699846  0.79154214  0.79599132\n",
+      "  0.80017349  0.80413513  0.8079722   0.81173005  0.81534432  0.81883456\n",
+      "  0.82222188  0.82541884  0.82858738  0.83168883  0.83465363  0.83752465\n",
+      "  0.84034978  0.84304401  0.84572793  0.84829303  0.85082471  0.85327119\n",
+      "  0.85566821  0.85805402  0.86034636  0.86255585  0.86468645  0.86674962\n",
+      "  0.86877744  0.87072779  0.87264249  0.87452799  0.87639775  0.87819879\n",
+      "  0.87996666  0.88170024  0.88334874  0.8849811   0.88659518  0.88813822\n",
+      "  0.88960842  0.89103041  0.89244056  0.89384202  0.89523806  0.89658829\n",
+      "  0.897912    0.89923092  0.90052288  0.90177458  0.90299985  0.90420403\n",
+      "  0.90536763  0.90651078  0.90763622  0.90873478  0.90981814  0.91088985\n",
+      "  0.91192659  0.91296072  0.91396654  0.91496573  0.91594241  0.91688392\n",
+      "  0.91781962  0.9187311   0.9196317   0.92052105  0.92138232  0.92223466\n",
+      "  0.92307518  0.92389218  0.92467778  0.92545481  0.92623018  0.92699455\n",
+      "  0.92775419  0.92850242  0.92923164  0.92995627  0.93067035  0.93137292\n",
+      "  0.93206386  0.93274833  0.93342549  0.9340953   0.93475306  0.9353942\n",
+      "  0.93602539  0.93665174  0.93726967  0.93786786  0.93845875  0.93904739\n",
+      "  0.93963045  0.94021078  0.94077936  0.94134467  0.94190579  0.94244923\n",
+      "  0.94298037  0.94350087  0.94401951  0.94452239  0.94501634  0.94550777\n",
+      "  0.9459942   0.94647019  0.94694227  0.94741107  0.9478669   0.94831738\n",
+      "  0.94875979  0.94919914  0.94963445  0.95006656  0.95049357  0.95091258\n",
+      "  0.95132523  0.95173224  0.95213083  0.95252159]\n"
+     ]
+    }
+   ],
+   "source": [
+    "pca = PCA(n_components=160)\n",
+    "pca.fit_transform(X_pca)\n",
+    "#print(pca.explained_variance_ratio_)\n",
+    "explained_variance = pca.explained_variance_ratio_.cumsum()\n",
+    "print(explained_variance)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 76,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "image/png": "iVBORw0KGgoAAAANSUhEUgAAAXcAAAD8CAYAAACMwORRAAAABHNCSVQICAgIfAhkiAAAAAlwSFlz\nAAALEgAACxIB0t1+/AAAADl0RVh0U29mdHdhcmUAbWF0cGxvdGxpYiB2ZXJzaW9uIDIuMS4wLCBo\ndHRwOi8vbWF0cGxvdGxpYi5vcmcvpW3flQAAHf5JREFUeJzt3Xl0XOWd5vHvT/tqLZZk2ZZseRHe\nEi9EAYMJYQsxTGI66QxLk55sjSdkSGey9cChh0nozpksPSTpOYSEkHSnw95u2niIEzcBQza8yGAW\n77a8ybKt1drX0jt/1JWQZcku25Ju1a3nc45O3bp1LT28dj1cvfXWLXPOISIiwZLgdwARERl7KncR\nkQBSuYuIBJDKXUQkgFTuIiIBpHIXEQkglbuISACp3EVEAkjlLiISQEl+/eCCggJXVlbm148XEYlJ\n27Ztq3fOFZ7rON/KvaysjMrKSr9+vIhITDKzw5Ecp2kZEZEAUrmLiASQyl1EJIBU7iIiAaRyFxEJ\nIJW7iEgAqdxFRALIt3XuIiJB0t/v6OgN0d7d532FaBvY7ukb3G7rDnH9/CKWlOaOax6Vu4jEtVC/\no62rj5auXlq7wiXc6m23dvXS0tU3uP1uQYfL+93tPjp6Q0T6kdRF2akqdxGRs+nqDdHc2cupjl7v\ntmewjFu7+mjtfrek24bu97bbe0Ln/BnJiUZ2WjJZqUlkpiaRlZrI5KwUZkzOICvl3X2Zg48neduJ\nQ/5M+DYjOZGEBBv3cVG5i4jvnHO0dvfRPFjQvZzq7Bks7IHSDu/vffe4zh66evvP+r1TkxLITksi\nOy3Zu02iKDvtjH2T0pLJ8raH709NSsBs/At5LKncRWTMdfT00dDWQ1NHDw3tPTQO225oD99vau8J\nl3VnL6H+0ec00pITyE1PISc9mZyMZGZOziA3I5mc9GRyM1K822Ry01OYlB4u5Oy0JLLSkkhNSpzA\n//LooXIXkXPq7AlR19pNXVs39W3dNLb3nPbV0N5DY3s3Te29NLR3j3o2nZxo5GWkkJ8Z/lowbRJ5\nXikPFHeuV9gD5Z2TnkxacnwW9MVQuYvEqe6+EPVtPdS1dlM/UNzebV1ruMTDtz20dfeN+D0yUxLJ\nz0ohPyOFwqxU5k2ZRH5mMvmZqUz2CjwvMyW8nZVCdmpSzE1vxCqVu0jA9IX6qW3t5kRLFyeavS9v\n+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\n",
+      "text/plain": [
+       "<matplotlib.figure.Figure at 0x1a154c8da0>"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    }
+   ],
+   "source": [
+    "plt.plot(explained_variance)\n",
+    "plt.show()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 77,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "X_train, X_test, y_train, y_test = train_test_split(X_pca, y, test_size=0.3, random_state=2017)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 78,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "Time taken: 4.17 Seconds\n",
+      "RF Post PCA Test Score: 0.999\n"
+     ]
+    }
+   ],
+   "source": [
+    "clf_rf = RandomForestClassifier(random_state=2017)\n",
+    "start = time.time()\n",
+    "clf_rf.fit(X_train, y_train)\n",
+    "end = time.time()\n",
+    "print(\"Time taken: {:.2f}\".format(end - start) +\" Seconds\")\n",
+    "print(\"RF Post PCA Test Score: {:.3f}\".format(clf_rf.score(X_train, y_train)))"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "The Test Score also improved by almost 5% on doing PCA. No Time remained almost the same."
+   ]
+  }
+ ],
+ "metadata": {
+  "kernelspec": {
+   "display_name": "Python 3",
+   "language": "python",
+   "name": "python3"
+  },
+  "language_info": {
+   "codemirror_mode": {
+    "name": "ipython",
+    "version": 3
+   },
+   "file_extension": ".py",
+   "mimetype": "text/x-python",
+   "name": "python",
+   "nbconvert_exporter": "python",
+   "pygments_lexer": "ipython3",
+   "version": "3.5.4"
+  }
+ },
+ "nbformat": 4,
+ "nbformat_minor": 2
+}
